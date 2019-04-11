@@ -1,5 +1,5 @@
-foo1 <- read.csv("https://course-resources.minerva.kgi.edu/uploaded_files/mke/00086677-3767/peace.csv")
-foo <- foo1[, c(6:8, 11:16, 99, 50, 114, 49, 63, 136, 109, 126, 48, 160, 142, 10)]
+foo <- read.csv("https://course-resources.minerva.kgi.edu/uploaded_files/mke/00086677-3767/peace.csv")
+foo <- foo[, c(6:8, 11:16, 99, 50, 114, 49, 63, 136, 109, 126, 48, 160, 142, 10)]
 # remove 2 rows with missing data (there are better ways to handle missing data)
 foo <- foo[c(-19, -47), ]
 # check that all missing data is gone...
@@ -8,14 +8,24 @@ which(is.na(foo) == TRUE) #  0
 head(foo)
 
 attach(foo)
-glm1 <- glm(pbs2s3 ~ wartype + logcost + wardur + factnum +
-                          factnum2 + trnsfcap  + treaty + untype4 + develop +
-                          exp + decade, family = "binomial") #glm1
-glm2 <- glm(pbs2s3 ~ wartype + logcost + wardur + factnum + #glm2 with interaction
-                factnum2 + trnsfcap + treaty  + untype4 + develop +
-                exp + decade + logcost*untype4, family = "binomial")
+#Most Basic Model (given in the paper)
+glm1 <- glm (pbs2s3 ~  wartype + logcost + wardur + factnum + 
+               factnum2 + trnsfcap + develop + exp + decade +
+               treaty + untype4, data=foo, family="binomial")
+               
+#Modified model (as instructed in the assignment)
+glm2 <- glm (pbs2s3 ~  wartype + logcost + wardur + factnum + 
+               factnum2 + trnsfcap + develop + exp + decade +
+               treaty + untype4 + I(logcost*untype4), data=foo, family="binomial")
+
+#Origninal model with interaction term (given in the paper)
+glm3 <- glm (pbs2s3 ~  wartype + logcost + wardur + factnum + 
+               factnum2 + trnsfcap + develop + exp + decade +
+               treaty + untype4 + I(wardur*untype4), data=foo, family="binomial")
 summary(glm1)
 summary(glm2)
+summary(glm2)
+
 #holding predictors at their means
 wartype_mean <- mean(foo$wartype)
 logcost_mean <- mean(foo$logcost)
@@ -28,48 +38,75 @@ develop_mean <- mean(foo$develop)
 exp_mean <- mean(foo$exp)
 decade_mean <- mean(foo$decade)
 
-#vectors are generated for treatement effect (TE) on control and treatment and a vector for replication
+#creating storage vectors for treatement, control and prediction
 control_TE  <- c()
 treatment_TE  <- c()
-repli <- c()
+pred <- c()
 detach(foo)
 
-#for loop for the treatement effect for the basic model
+#for loop for the treatement effect for the glm1 run 315 time with wardur varied
 for(i in 1:315){ 
   control_TE  <- data.frame(wartype_mean,logcost_mean,i,factnum_mean,factnum2_mean,trnsfcap_mean,0,treaty_mean,develop_mean,exp_mean,decade_mean)
   treatment_TE <- data.frame(wartype_mean,logcost_mean,i,factnum_mean,factnum2_mean,trnsfcap_mean,1,treaty_mean ,develop_mean,exp_mean,decade_mean)
   names(control_TE) <- c('wartype','logcost','wardur','factnum','factnum2','trnsfcap','untype4','treaty','develop',
-                      'exp','decade')
-  names(treatment_TE) <- c('wartype','logcost','wardur','factnum','factnum2','trnsfcap','untype4','treaty','develop',
-                       'exp','decade')
-  
-  repli[i] <- mean(predict(glm1, newdata = treatment_TE ,type = 'response'))- mean(predict(glm1, newdata = control_TE , type = 'response'))
-}
-#vectors are generated for treatement effect (TE) on control and treatment and a vector for replication
-control_TE_2  <- c()
-treatment_TE_2 <- c()
-repli2 <- c()
-#For loop for the treatment effect of the model with interaction term
-for(i in 1:20){
-  control_TE_2  <- data.frame(wartype_mean,i,wardur_mean,factnum_mean,factnum2_mean,trnsfcap_mean,0,treaty_mean,develop_mean,exp_mean,decade_mean)
-  treatment_TE_2 <- data.frame(wartype_mean,i,wardur_mean, factnum_mean,factnum2_mean,trnsfcap_mean,1,treaty_mean ,develop_mean,exp_mean,decade_mean)
-  names(control_TE_2) <- c('wartype','logcost','wardur','factnum','factnum2','trnsfcap','untype4','treaty','develop',
                          'exp','decade')
-  names(treatment_TE_2) <- c('wartype','logcost','wardur','factnum','factnum2','trnsfcap','untype4','treaty','develop',
+  names(treatment_TE) <- c('wartype','logcost','wardur','factnum','factnum2','trnsfcap','untype4','treaty','develop',
                            'exp','decade')
   
-  repli2[i] <- mean(predict(glm2, newdata = treatment_TE_2 ,type = 'response'))- mean(predict(glm2, newdata = control_TE_2 , type = 'response'))
+  pred[i] <- mean(predict(glm1, newdata = treatment_TE ,type = 'response'))- mean(predict(glm1, newdata = control_TE , type = 'response'))
+}
+#creating storage vectors for treatement, control and prediction
+control_TE_2  <- c()
+treatment_TE_2 <- c()
+pred2 <- c()
+#for loop for the treatement effect for the glm2 run 315 time with logcost varied
+for(i in 1:20){
+  control_TE_2 <- data.frame(wartype_mean,wardur_mean,i,factnum_mean,factnum2_mean,trnsfcap_mean,
+                             develop_mean,exp_mean,decade_mean,treaty_mean,0)
+  treatment_TE_2 <- data.frame(wartype_mean,wardur_mean,i,factnum_mean,factnum2_mean,trnsfcap_mean,
+                          develop_mean,exp_mean,decade_mean,treaty_mean,1)
+  names(control_TE_2) <-
+    c('wartype','wardur','logcost','factnum','factnum2','trnsfcap','develop','exp','decade',
+      'treaty','untype4')
+  names( treatment_TE_2) <-
+    c('wartype','wardur','logcost','factnum','factnum2','trnsfcap','develop','exp','decade',
+      'treaty','untype4')
+  
+  pred2[i] <- mean(predict(glm2, newdata = treatment_TE_2  ,type = 'response'))-
+    mean(predict(glm2, newdata = control_TE_2 , type = 'response'))
+  
+}
+control_TE_3  <- c()
+treatment_TE_3 <- c()
+pred3 <- c()
+for(i in 1:315){
+  control_TE_3  <- data.frame(wartype_mean,logcost_mean,i,factnum_mean,factnum2_mean,trnsfcap_mean,0,treaty_mean,develop_mean,exp_mean,decade_mean)
+  treatment_TE_3 <- data.frame(wartype_mean,logcost_mean,i, factnum_mean,factnum2_mean,trnsfcap_mean,1,treaty_mean ,develop_mean,exp_mean,decade_mean)
+  names(control_TE_3) <- c('wartype','logcost','wardur','factnum','factnum2','trnsfcap','untype4','treaty','develop',
+                           'exp','decade')
+  names(treatment_TE_3) <- c('wartype','logcost','wardur','factnum','factnum2','trnsfcap','untype4','treaty','develop',
+                             'exp','decade')
+  
+  pred3[i] <- mean(predict(glm3, newdata = treatment_TE_3 ,type = 'response'))- mean(predict(glm3, newdata = control_TE_3 , type = 'response'))
 }
 
-#plots 
+#plots
 
-plot(repli, type = "l",lty = 'dotted',ylim = c(0,0.8),xlim = c(0,315),
+#Orignal 
+plot(pred, type = "l",lty = 'dotted',ylim = c(0,0.8),xlim = c(0,315),
      xlab = '',ylab='',sub = "Figure 8: Causal Effect of Multidimensional UN Peacekeeping Operations")
 par(new=TRUE)
-plot(repli2,type = "l", ylim = c(0,0.8),axes = FALSE,
+plot(pred3,type = "l", ylim = c(0,0.8),axes = FALSE,
      ylab = "Marginal effects of UN peacekeeping operations",
      xlab="Duration of wars in months",cex.lab=1.0)
-
 #Labels on Graph
-text(95,0.1,"Model with Interaction Term",cex=.8)
+text(200,0.75,"Model with Interaction Term (wardur*untype4)",cex=.8)
 text(205,0.4,"Dotted:Original Model",cex=.8)
+
+#Modified
+plot(pred2, type = "l",ylim = c(0,0.8),xlim = c(0,20),
+     xlab = 'logcost',ylab='arginal effects of UN peacekeeping operations',sub = "Figure 8: Causal Effect of Multidimensional UN Peacekeeping Operations")
+par(new=TRUE)
+text(8,0.8,"Model with Interaction Term (logcost * untype4) ",cex=.8)
+
+
